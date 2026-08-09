@@ -1,3 +1,3 @@
 variable "rgs" {
-    type = "string"
+    type = string
 }

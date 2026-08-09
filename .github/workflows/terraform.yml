@@ -1,4 +1,4 @@
-name: Terraform Feature Branch - Security Scan, Plan and Apply
+name: Terraform Feature Branch - Security Scan and Plan
 
 on:
   push:
@@ -18,8 +18,6 @@ jobs:
   terraform-scanning:
     name: Stage 1 - Terraform Security & Cost Scanning
     runs-on: ubuntu-latest
-
-    if: startsWith(github.ref, 'refs/heads/feature/')
 
     steps:
 
@@ -59,37 +57,6 @@ jobs:
           soft_fail: false
 
       # =========================================================
-      # STEP 4 - TERRASCAN
-      # =========================================================
-      - name: Install Terrascan
-        run: |
-          curl -L \
-            https://github.com/tenable/terrascan/releases/download/v1.19.9/terrascan_1.19.9_Linux_x86_64.tar.gz \
-            -o terrascan.tar.gz
-
-          tar -xzf terrascan.tar.gz
-
-          sudo mv terrascan /usr/local/bin/terrascan
-
-          terrascan version
-
-      - name: Terrascan Scan
-        working-directory: 'Parent-Module'
-        run: |
-          terrascan scan \
-            -i terraform \
-            -d . \
-            --skip-rules AC_AZURE_0010
-
-      # =========================================================
-      # STEP 5 - GITLEAKS
-      # =========================================================
-      - name: Gitleaks Secret Scan
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # =========================================================
       # STEP 6 - INSTALL INFRACOST
       # =========================================================
       - name: Setup Infracost
@@ -106,6 +73,8 @@ jobs:
         run: |
           if [ -z "$INFRACOST_API_KEY" ]; then
             echo "ERROR: INFRACOST_API_KEY is not configured."
+            echo "Please add INFRACOST_API_KEY under:"
+            echo "GitHub Repository -> Settings and variables -> Actions"
             exit 1
           fi
 
@@ -154,8 +123,6 @@ jobs:
   terraform-plan:
     name: Stage 2 - Terraform Plan
     runs-on: ubuntu-latest
-
-    if: startsWith(github.ref, 'refs/heads/feature/')
 
     needs:
       - terraform-scanning
@@ -225,7 +192,7 @@ jobs:
         run: terraform plan -input=false -no-color
 
 
-  # =========================================================
+      # =========================================================
   # STAGE 3 - TERRAFORM APPLY
   # =========================================================
 

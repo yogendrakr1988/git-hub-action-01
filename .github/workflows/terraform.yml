@@ -15,7 +15,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: 'Project-New/Parent Module'
+        working-directory: 'git-hub-action-01/Parent-Module'
 
     steps:
 

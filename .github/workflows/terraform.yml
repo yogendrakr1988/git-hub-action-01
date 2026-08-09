@@ -1,3 +1,8 @@
+      # =========================================================
+      # STAGE 1 - TERRAFORM Plan
+      # =========================================================
+
+
 name: Terraform Feature Branch - Plan
 
 on:
@@ -83,9 +88,9 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -input=false -no-color
 
-        # =========================================================
-  # STAGE 2 - TERRAFORM SECURITY & COST SCANNING
-  # =========================================================
+      # =========================================================
+      # STAGE 2 - TERRAFORM SECURITY & COST SCANNING
+      # =========================================================
   terraform-scanning:
     name: Stage 2 - Terraform Security & Cost Scanning
     runs-on: ubuntu-latest

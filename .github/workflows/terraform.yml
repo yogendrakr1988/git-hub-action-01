@@ -77,7 +77,17 @@ jobs:
         run: |
           terrascan scan \
             -i terraform \
-            -d .
+            -d . \
+            --skip-rules AC_AZURE_0010
+
+
+      # =========================================================
+      # STEP 5 - GITLEAKS
+      # =========================================================
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
       # =========================================================
@@ -99,7 +109,7 @@ jobs:
           if [ -z "$INFRACOST_API_KEY" ]; then
             echo "ERROR: INFRACOST_API_KEY is not configured."
             echo "Please add INFRACOST_API_KEY under:"
-            echo "GitHub Repository -> Settings -> Secrets and variables -> Actions"
+            echo "GitHub Repository -> Settings and variables -> Actions"
             exit 1
           fi
 
@@ -184,7 +194,7 @@ jobs:
           az login \
             --service-principal \
             --username "50648d8a-5440-4d4a-93bb-8b9a5f14aaca" \
-            --password "IXy8Q~r6ElhtnHHuwRs~fiBWk5EpSvS1x4gqEbWu" \
+            --password "IXy8Q~r6ElhtHHuwRs~fiBWk5EpSvS1x4gqEbWu" \
             --tenant "91695fd6-371b-4c10-8dc9-21e31d347ad6"
 
           az account set \

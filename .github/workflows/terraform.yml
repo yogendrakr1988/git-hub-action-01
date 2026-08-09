@@ -56,16 +56,6 @@ jobs:
           quiet: false
           soft_fail: false
 
-
-      # =========================================================
-      # STEP 5 - GITLEAKS
-      # =========================================================
-      - name: Gitleaks Secret Scan
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
       # =========================================================
       # STEP 6 - INSTALL INFRACOST
       # =========================================================

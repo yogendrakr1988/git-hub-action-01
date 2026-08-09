@@ -1,0 +1,263 @@
+name: Terraform Feature Branch - Security Scan and Plan
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "main"
+
+permissions:
+  contents: read
+
+jobs:
+
+  # =========================================================
+  # STAGE 1 - TERRAFORM SECURITY & COST SCANNING
+  # =========================================================
+
+  terraform-scanning:
+    name: Stage 1 - Terraform Security & Cost Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # =========================================================
+      # STEP 1 - Checkout Repository
+      # =========================================================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # =========================================================
+      # STEP 2 - TFLINT
+      # =========================================================
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: latest
+
+      - name: TFLint Init
+        working-directory: 'Parent-Module'
+        run: tflint --init
+
+      - name: TFLint Scan
+        working-directory: 'Parent-Module'
+        run: tflint --format compact
+
+      # =========================================================
+      # STEP 3 - CHECKOV
+      # =========================================================
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: Parent-Module
+          framework: terraform
+          quiet: false
+          soft_fail: false
+
+      # =========================================================
+      # STEP 6 - INSTALL INFRACOST
+      # =========================================================
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      # =========================================================
+      # STEP 7 - CHECK INFRACOST API KEY
+      # =========================================================
+      - name: Verify Infracost API Key
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          if [ -z "$INFRACOST_API_KEY" ]; then
+            echo "ERROR: INFRACOST_API_KEY is not configured."
+            echo "Please add INFRACOST_API_KEY under:"
+            echo "GitHub Repository -> Settings and variables -> Actions"
+            exit 1
+          fi
+
+          echo "Infracost API key is configured."
+
+      # =========================================================
+      # STEP 8 - INFRACOST SCAN
+      # =========================================================
+      - name: Infracost Scan
+        working-directory: 'Parent-Module'
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          infracost breakdown \
+            --path . \
+            --format table \
+            --no-color
+
+      # =========================================================
+      # STEP 9 - INFRACOST JSON REPORT
+      # =========================================================
+      - name: Infracost JSON Report
+        working-directory: 'Parent-Module'
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          infracost breakdown \
+            --path . \
+            --format json \
+            --out-file infracost.json
+
+      # =========================================================
+      # STEP 10 - Upload Infracost Report
+      # =========================================================
+      - name: Upload Infracost Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: infracost-report
+          path: Parent-Module/infracost.json
+
+
+  # =========================================================
+  # STAGE 2 - TERRAFORM PLAN
+  # =========================================================
+
+  terraform-plan:
+    name: Stage 2 - Terraform Plan
+    runs-on: ubuntu-latest
+
+    needs:
+      - terraform-scanning
+
+    defaults:
+      run:
+        working-directory: 'Parent-Module'
+
+    steps:
+
+      # =========================================================
+      # STEP 1 - Checkout Repository
+      # =========================================================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # =========================================================
+      # STEP 2 - Setup Terraform
+      # =========================================================
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      # =========================================================
+      # STEP 3 - Azure Login
+      # =========================================================
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      # =========================================================
+      # STEP 4 - Verify Azure Login
+      # =========================================================
+      - name: Verify Azure Login
+        run: az account show --output table
+
+      # =========================================================
+      # STEP 5 - Terraform Format Check
+      # =========================================================
+      - name: Terraform Format Check
+        run: terraform fmt -recursive
+
+      # =========================================================
+      # STEP 6 - Terraform Init
+      # =========================================================
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      # =========================================================
+      # STEP 7 - Terraform Validate
+      # =========================================================
+      - name: Terraform Validate
+        run: terraform validate
+
+      # =========================================================
+      # STEP 8 - Terraform Plan
+      # =========================================================
+      - name: Terraform Plan
+        run: terraform plan -input=false -no-color
+
+
+      # =========================================================
+  # STAGE 3 - TERRAFORM APPLY
+  # =========================================================
+
+  terraform-apply:
+    name: Stage 3 - Terraform Apply
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/main'
+
+    defaults:
+      run:
+        working-directory: 'Parent-Module'
+
+    steps:
+
+      # =========================================================
+      # STEP 1 - Checkout MAIN Branch
+      # =========================================================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # =========================================================
+      # STEP 2 - Setup Terraform
+      # =========================================================
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      # =========================================================
+      # STEP 3 - Azure Login
+      # =========================================================
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      # =========================================================
+      # STEP 4 - Verify Azure Login
+      # =========================================================
+      - name: Verify Azure Login
+        run: az account show --output table
+
+      # =========================================================
+      # STEP 5 - Terraform Init
+      # =========================================================
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      # =========================================================
+      # STEP 6 - Terraform Validate
+      # =========================================================
+      - name: Terraform Validate
+        run: terraform validate
+
+      # =========================================================
+      # STEP 7 - Terraform Apply
+      # =========================================================
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false

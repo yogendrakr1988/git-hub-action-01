@@ -1,4 +1,4 @@
-module "rgs" {
+module "resources-name" {
   source = "../Child-Module/RG"
-  rgs    = var.rgs
+  rgs = var.rgs
 }

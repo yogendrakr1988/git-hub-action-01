@@ -13,6 +13,7 @@ jobs:
   # =========================================================
   # STAGE 1 - TERRAFORM SECURITY & COST SCANNING
   # =========================================================
+
   terraform-scanning:
     name: Stage 1 - Terraform Security & Cost Scanning
     runs-on: ubuntu-latest
@@ -26,7 +27,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
 
       # =========================================================
       # STEP 2 - TFLINT
@@ -44,7 +44,6 @@ jobs:
         working-directory: 'Parent-Module'
         run: tflint --format compact
 
-
       # =========================================================
       # STEP 3 - CHECKOV
       # =========================================================
@@ -56,7 +55,6 @@ jobs:
           quiet: false
           soft_fail: false
 
-
       # =========================================================
       # STEP 6 - INSTALL INFRACOST
       # =========================================================
@@ -64,7 +62,6 @@ jobs:
         uses: infracost/actions/setup@v3
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
-
 
       # =========================================================
       # STEP 7 - CHECK INFRACOST API KEY
@@ -82,7 +79,6 @@ jobs:
 
           echo "Infracost API key is configured."
 
-
       # =========================================================
       # STEP 8 - INFRACOST SCAN
       # =========================================================
@@ -95,7 +91,6 @@ jobs:
             --path . \
             --format table \
             --no-color
-
 
       # =========================================================
       # STEP 9 - INFRACOST JSON REPORT
@@ -110,7 +105,6 @@ jobs:
             --format json \
             --out-file infracost.json
 
-
       # =========================================================
       # STEP 10 - Upload Infracost Report
       # =========================================================
@@ -124,6 +118,7 @@ jobs:
   # =========================================================
   # STAGE 2 - TERRAFORM PLAN
   # =========================================================
+
   terraform-plan:
     name: Stage 2 - Terraform Plan
     runs-on: ubuntu-latest
@@ -143,7 +138,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-
       # =========================================================
       # STEP 2 - Setup Terraform
       # =========================================================
@@ -152,25 +146,25 @@ jobs:
         with:
           terraform_version: latest
 
-
       # =========================================================
       # STEP 3 - Azure Login
       # =========================================================
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
 
       # =========================================================
-      # STEP 4 - Verify Azure Subscription
+      # STEP 4 - Verify Azure Login
       # =========================================================
       - name: Verify Azure Login
         run: az account show --output table
-
 
       # =========================================================
       # STEP 5 - Terraform Format Check
@@ -178,20 +172,17 @@ jobs:
       - name: Terraform Format Check
         run: terraform fmt -recursive
 
-
       # =========================================================
       # STEP 6 - Terraform Init
       # =========================================================
       - name: Terraform Init
         run: terraform init -input=false
 
-
       # =========================================================
       # STEP 7 - Terraform Validate
       # =========================================================
       - name: Terraform Validate
         run: terraform validate
-
 
       # =========================================================
       # STEP 8 - Terraform Plan

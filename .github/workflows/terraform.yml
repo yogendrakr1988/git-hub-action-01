@@ -56,6 +56,7 @@ jobs:
           quiet: false
           soft_fail: false
 
+
       # =========================================================
       # STEP 6 - INSTALL INFRACOST
       # =========================================================
@@ -153,18 +154,15 @@ jobs:
 
 
       # =========================================================
-      # STEP 3 - Azure Login Using Service Principal
+      # STEP 3 - Azure Login
       # =========================================================
-      - name: Azure Login Using Service Principal
-        run: |
-          az login \
-            --service-principal \
-            --username "50648d8a-5440-4d4a-93bb-8b9a5f14aaca" \
-            --password "IXy8Q~r6ElhtHHuwRs~fiBWk5EpSvS1x4gqEbWu" \
-            --tenant "91695fd6-371b-4c10-8dc9-21e31d347ad6"
-
-          az account set \
-            --subscription "b299f192-d573-4040-b542-2aff90a974b5"
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
 
       # =========================================================

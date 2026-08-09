@@ -82,3 +82,85 @@ jobs:
       # =========================================================
       - name: Terraform Plan
         run: terraform plan -input=false -no-color
+
+        steps:
+
+      # ---------------------------------------------------------
+      # STEP 1 - Checkout
+      # ---------------------------------------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+
+      # =========================================================
+      # TFLINT
+      # =========================================================
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: latest
+
+
+      - name: TFLint Init
+        run: tflint --init
+
+
+      - name: TFLint Scan
+        run: tflint --format compact
+
+
+      # =========================================================
+      # CHECKOV
+      # =========================================================
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: Parent-Module
+          framework: terraform
+          quiet: false
+          soft_fail: false
+
+
+      # =========================================================
+      # TERRASCAN
+      # =========================================================
+      - name: Install Terrascan
+        run: |
+          curl -L \
+            https://github.com/tenable/terrascan/releases/download/v1.19.9/terrascan_1.19.9_Linux_x86_64.tar.gz \
+            -o terrascan.tar.gz
+
+          tar -xzf terrascan.tar.gz
+
+          sudo mv terrascan /usr/local/bin/terrascan
+
+          terrascan version
+
+
+      - name: Terrascan Scan
+        run: |
+          terrascan scan \
+            -i terraform \
+            -d .
+
+
+      # =========================================================
+      # GITLEAKS
+      # =========================================================
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      # =========================================================
+      # OPENCOST
+      # =========================================================
+      - name: OpenCost
+        run: |
+          echo "OpenCost is a cloud/Kubernetes cost monitoring tool."
+          echo "It is not a Terraform IaC security scanner."
+          echo "OpenCost cost analysis requires an OpenCost deployment/API."
+          echo "Skipping direct Terraform scan."

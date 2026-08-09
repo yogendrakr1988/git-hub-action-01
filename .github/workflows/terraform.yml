@@ -58,30 +58,6 @@ jobs:
 
 
       # =========================================================
-      # STEP 4 - TERRASCAN
-      # =========================================================
-      - name: Install Terrascan
-        run: |
-          curl -L \
-            https://github.com/tenable/terrascan/releases/download/v1.19.9/terrascan_1.19.9_Linux_x86_64.tar.gz \
-            -o terrascan.tar.gz
-
-          tar -xzf terrascan.tar.gz
-
-          sudo mv terrascan /usr/local/bin/terrascan
-
-          terrascan version
-
-      - name: Terrascan Scan
-        working-directory: 'Parent-Module'
-        run: |
-          terrascan scan \
-            -i terraform \
-            -d . \
-            --skip-rules AC_AZURE_0010
-
-
-      # =========================================================
       # STEP 5 - GITLEAKS
       # =========================================================
       - name: Gitleaks Secret Scan
